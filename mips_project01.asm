@@ -2,12 +2,22 @@
 	# área para dados na memória principal
 	
 	## textos
-	menu: 		.asciiz "Bem vindo!\nSelecione sua Operação:\n\n1 - Fahrenheit - > Celsius\n2 - Nº termo de Fibonnacci\n3 - N° número par\n4 - Sair\n\n=> "
-	req_n: 		.asciiz "Vamos calcular o enérsimo termo de Fibonacci!\nQual termo deseja consultar? "
-	ret_valor: 	.asciiz "O valor do enésimo termo é => "
-	encerrando:	.asciiz "Encerrando programa..."
+	menu: 			.asciiz "Bem vindo!\nSelecione sua Operação:\n\n1 - Fahrenheit - > Celsius\n2 - Nº termo de Fibonnacci\n3 - N° número par\n4 - Sair\n\n=> "
+	
+	entrada_conversor:	.asciiz "Vamos converter de Fahrenheit para Celsius!\nQual temperatura deseja consultar? (°F) "
+	saida_conversor:	.asciiz "O valor da temperatura em Celsius é aproximadamente => "
+	
+	entrada_fibonacci: 	.asciiz "Vamos calcular o enérsimo termo de Fibonacci!\nQual termo deseja consultar? "
+	saida_fibonacci: 	.asciiz "O valor do enésimo termo é => "
+	
+	entrada_par:		.asciiz "Vamos calcular o valor do enérsimo termo par!\nQual termo deseja consultar? "
+	saida_par:		.asciiz "O valor do enésimo termo par é => "
+	
+	encerrando:		.asciiz "Encerrando programa..."
+	
+	val_10: 		.float 10.0
 .text
-	#área para instruiçciiz ões de programa
+	#área para instruções de programa
 	
 	sistema:	# praticamente a funcao principal, ira se repetir
 	
@@ -20,7 +30,7 @@
 		
 		# usa a escolha do usuario para chamar a funcao correspondente
 		# testa igualdade com branch on equal
-    		#beq   	$s0, 1,                               
+    		beq   	$s0, 1, converte                              
     		beq   	$s0, 2, fibonacci
     		#beq   	$s0, 3, 
     		beq  	$s0, 4, fechaPrograma
@@ -34,7 +44,23 @@
 	 	li 	$v0, 5	# atribui 5 ao registrador (read int)
 	 	syscall
 	 	
-	 	jr 	$ra		# retorna o valor
+	 	jr 	$ra	# retorna o valor
+	 	
+	leFloat:
+		## função criada para ler valores flutuantes de input
+		
+	 	li 	$v0, 6	# atribui 6 ao registrador (read float)
+	 	syscall
+	 	
+	 	jr 	$ra	# retorna o valor 	
+	 	
+	leString:
+		## função criada para ler valores string
+		
+		li	$v0, 8	# atribui 8 ao registrador (read string)
+		syscall
+		
+		jr	$ra	# retorna o valor
 	 	
 	imprimeInteiro:
 		## função para imprimir o valor inteiro no registrador a0
@@ -42,7 +68,15 @@
 		li 	$v0, 1	# atribui 1 ao registrador (print int)
 		syscall 
 		
-		jr 	$ra		# retorna o valor
+		jr 	$ra	# retorna o valor
+		
+	imprimeFloat:
+		## função para imprimir o valor float no registrador f12
+		
+		li 	$v0, 2	# atribui 2 ao registrador (print float)
+		syscall 
+		
+		jr 	$ra	# retorna o valor	
 		
 	imprimeString:
 		## função para imprimir o valor de string no registrador a0
@@ -50,32 +84,93 @@
 		li 	$v0, 4	# atribui 4 ao registrador (print string)
 		syscall
 		
+		jr 	$ra	# retorna o valor
+		
+	corrigeFloat:
+		## função para correção de int pra float
+		mtc1	$t0, $f1	#
+		cvt.s.w $f1, $f1	#
+		
 		jr 	$ra		# retorna o valor
+		
+	arredonda:
+		## função para arredondar nossos pontos flutuantes
+		l.s $f1, val_10          # carrega 10.0 em $f1
+    		mul.s $f2, $f0, $f1      # $f2 = $f0 * 10.0
+    		round.w.s $f2, $f2       # arredonda $f2 para o inteiro mais próximo
+    		cvt.s.w $f2, $f2         # converte o inteiro de volta para float
+    		div.s $f0, $f2, $f1      # $f0 = $f2 / 10.0 (resultado arredondado a 1 casa decimal)
+		
+		jr	$ra		# retorna o valor
+		
 	 	
 	pulaLinha: 
     		## função para pular linhas, apenas para organização visual
     		
     		li 	$a0, '\n'	# atribui o \n ao registrador
-   		li 	$v0, 11	# atribui o print char ao registrador
+   		li 	$v0, 11		# atribui o print char ao registrador
     		syscall 
 
     		jr 	$ra 		# retorna o valor
+
+	encerraSubPrograma:
+		## função criada para encapsular a parte final dos subprogramas, evitando repeticao de codigo
+		jal 	pulaLinha	# pular linhas pra organizar
+		jal	leString	# organizar
+		jal 	pulaLinha
+	
+		j 	sistema		# volta ao sistema
 	 	
 	fechaPrograma:
 		## função criada apenas para encerrar o programa
-		la 	$a0, encerrando
-		jal 	imprimeString 
+		la 	$a0, encerrando	# atribui o texto de encerramento ao registrador
+		jal 	imprimeString 	# imprime
 		
 		li 	$v0, 10	# atribui o syscall de saída
 		syscall
 		
 
 	## BLOCO DE FUNCOES ESPECIFICAS
-	fibonacci:
-		la  	$a0, req_n	# carrega o endereço do texto no registrador
-		jal 	imprimeString	# imprime o texto
+	converte:
+		la	$a0, entrada_conversor	# carrega o endereço do texto no registrador
+		jal	imprimeString		# imprime o texto
+		
+		jal	leFloat			# recege input do usuario
+		
+		aplicaFormula:	# organização
+			li	$t0, 32			# guarda o valor 32 em t0
+			jal 	corrigeFloat		# coloca nosso valor inteiro como aceitavel para operacao float em f1
+			sub.s	$f0, $f0, $f1		# f0 recebe o valor subtraido por 32
+		
+			li	$t0, 5			# guarda o valor 5 em t0
+			jal	corrigeFloat
+			mul.s	$f0, $f0, $f1		# multiplica o valor em f0 por 5	
+				
+			li	$t0, 9			# guarda o valor 9 em t0
+			jal	corrigeFloat
+			div.s	$f0, $f0, $f1		# divide o valor em s0 por 9
+			
+			jal 	arredonda		# funcao para arredondar e melhorar exibição
+			
+			mov.s 	$f12, $f0		# move nosso valor para o f12 que sera usado na saída
+			
+		encerraConversao: # organização
+			# assim, o valor final está em $f0
+			
+			## printa frase final
+			la	$a0, saida_conversor
+			jal	imprimeString
+			
+			move	$a0, $s0	# move para o registrador o nosso valor final
+			jal	imprimeFloat	# imprime o valor
+			
+		jal	encerraSubPrograma	
 	
-	        jal 	leInteiro	# recebe input do usuário
+	fibonacci:
+		la  	$a0, entrada_fibonacci	# carrega o endereço do texto no registrador
+		jal	imprimeString	# imprime o texto
+	
+		jal	leInteiro	# recebe input do usuário
 		move	$s0, $v0	# guarda input do usuario no s0
 	
 		## definir valores iniciais (ambos são 1)
@@ -100,13 +195,10 @@
 			# assim, o valor correto fica em $s2 sempre
 			
 			## printa frase final
-			la	$a0, ret_valor
+			la	$a0, saida_fibonacci
 			jal 	imprimeString
 		
 			move	$a0, $s2	# coloca no registrador o nosso valor
 			jal 	imprimeInteiro	# imprime noso valor
-		
-			jal 	pulaLinha	# pular linhas pra organizar
-			jal 	pulaLinha
-	
-			j 	sistema		# volta ao sistema
+			
+		jal	encerraSubPrograma
