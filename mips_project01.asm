@@ -15,6 +15,7 @@
 	
 	encerrando:		.asciiz "Encerrando programa..."
 	
+	## constante utilizada para arredondamento
 	val_10: 		.float 10.0
 .text
 	#área para instruções de programa
@@ -30,11 +31,12 @@
 		
 		# usa a escolha do usuario para chamar a funcao correspondente
 		# testa igualdade com branch on equal
-    		beq   	$s0, 1, converte                              
-    		beq   	$s0, 2, fibonacci
+    		beq   	$s0, 1, converte	# se 1, chama converte          
+    		beq   	$s0, 2, fibonacci	# se 2, chama fibonacci
     		#beq   	$s0, 3, 
-    		beq  	$s0, 4, fechaPrograma
-	
+    		beq  	$s0, 4, fechaPrograma	# se 4, fecha o programa
+    		
+		# qualquer outro valor...
 		j 	sistema 	# volta pro início
 	
 	## BLOCO DE FUNCOES DE UTILIDADE GERAL
@@ -88,18 +90,20 @@
 		
 	corrigeFloat:
 		## função para correção de int pra float
-		mtc1	$t0, $f1	#
-		cvt.s.w $f1, $f1	#
+		
+		mtc1	$t0, $f1	# move para o coprocessador 1 (FPU) para movermos para o f1 como float
+		cvt.s.w $f1, $f1	# converter word para precisao unica (evitar dizimas quebradas)
 		
 		jr 	$ra		# retorna o valor
 		
 	arredonda:
-		## função para arredondar nossos pontos flutuantes
+		## função para arredondar nossos pontos flutuantes com 1 casa decimal
+		
 		l.s $f1, val_10          # carrega 10.0 em $f1
-    		mul.s $f2, $f0, $f1      # $f2 = $f0 * 10.0
-    		round.w.s $f2, $f2       # arredonda $f2 para o inteiro mais próximo
+    		mul.s $f2, $f0, $f1      # multiplica o valor em f0 por 10
+    		round.w.s $f2, $f2       # arredonda o valor multiplcado para o inteiro mais proximo
     		cvt.s.w $f2, $f2         # converte o inteiro de volta para float
-    		div.s $f0, $f2, $f1      # $f0 = $f2 / 10.0 (resultado arredondado a 1 casa decimal)
+    		div.s $f0, $f2, $f1      # divide por 10 de novo (assim so terá uma casa decimal)
 		
 		jr	$ra		# retorna o valor
 		
@@ -108,7 +112,7 @@
     		## função para pular linhas, apenas para organização visual
     		
     		li 	$a0, '\n'	# atribui o \n ao registrador
-   		li 	$v0, 11		# atribui o print char ao registrador
+   		li 	$v0, 11		# atribui 11 ao registrador (print char)
     		syscall 
 
     		jr 	$ra 		# retorna o valor
@@ -116,8 +120,8 @@
 	encerraSubPrograma:
 		## função criada para encapsular a parte final dos subprogramas, evitando repeticao de codigo
 		jal 	pulaLinha	# pular linhas pra organizar
-		jal	leString	# organizar
-		jal 	pulaLinha
+		jal	leString	# organizar aguardando valor
+		jal 	pulaLinha	# pular linhas pra organizar
 	
 		j 	sistema		# volta ao sistema
 	 	
@@ -126,7 +130,7 @@
 		la 	$a0, encerrando	# atribui o texto de encerramento ao registrador
 		jal 	imprimeString 	# imprime
 		
-		li 	$v0, 10	# atribui o syscall de saída
+		li 	$v0, 10		# atribui o syscall de saída
 		syscall
 		
 
